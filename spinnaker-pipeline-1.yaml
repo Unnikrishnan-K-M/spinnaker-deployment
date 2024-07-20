@@ -1,0 +1,71 @@
+# Reference: gone through till 26:36
+# https://www.youtube.com/watch?v=54QgIjAzPW0
+
+#Stage:1 Create NS
+#=================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: '${execution.application}' #splat expression
+
+
+#Stage:2 Create LB Service
+#==========================
+apiVersion: v1
+kind: Service
+metadata:
+  name: rps-service
+  namespace: '${execution.application}'
+spec:
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+  selector:
+    app: rps
+  type: LoadBalancer
+
+
+#Stage3: Deploy ConfigMap & App
+#==============================
+  apiVersion: v1
+data:
+  index.html: |
+    <HTML>
+    <HEAD><TITLE>K8s nginx Machine 1</TITLE></HEAD>
+    <BODY>
+    <H1>Welcome to machine 1</H1>
+    </BODY></HTML
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: '${execution.application}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: rps
+  name: nginx-t-m1
+  namespace: '${execution.application}'
+spec:
+  selector:
+    matchLabels:
+      app: rps
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: rps
+    spec:
+      containers:
+        - image: nginx
+          name: nginx-t-m1
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html
+              name: config-volume1
+      volumes:
+        - configMap:
+            name: nginx-config
+          name: config-volume1
